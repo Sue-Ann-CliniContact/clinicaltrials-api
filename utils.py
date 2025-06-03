@@ -1,2 +1,2 @@
 def clean_text(text):
-    return text.replace("\n", " ").replace("\r", "").strip()
+    return text.replace("\r", "").replace("\n", " ").strip()
