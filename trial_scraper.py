@@ -15,7 +15,7 @@ def get_matching_trials(term):
         for item in items:
             title = clean_text(item.title.text) if item.title else "N/A"
             link = item.link.text if item.link else "N/A"
-            nct_id = link.split("/")[-1] if "ct2/show/" in link else "N/A"
+            nct_id = link.split("/")[-1].split("?")[0] if "clinicaltrials.gov" in link else "N/A"
             results.append({
                 "title": title,
                 "nct_id": nct_id,
