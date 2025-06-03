@@ -35,10 +35,10 @@ def get_raw_trials(term):
 
 def fetch_page_text(url):
     try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=10)
+        api_key = "77684815926660dc3de01ddfe765dee5"
+        proxy_url = f"https://api.scraperapi.com/?api_key={api_key}&url={url}"
+
+        response = requests.get(proxy_url, timeout=15)
         soup = BeautifulSoup(response.text, "html.parser")
         text = soup.get_text(separator="\n")
         return clean_text(text)
