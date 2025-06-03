@@ -1,4 +1,3 @@
-print("🔍 CliniContact scraper is LIVE and using updated logic")
 import requests
 from bs4 import BeautifulSoup
 from utils import clean_text
@@ -39,83 +38,35 @@ def get_matching_trials(term):
 
 def scrape_ct2_page(url):
     try:
-        print(f"🧪 Scraping: {url}")
         html = requests.get(url, timeout=10).text
         soup = BeautifulSoup(html, "html.parser")
 
-        # Eligibility
+        # Eligibility based on keyword search
         eligibility = ""
-        elig_heading = soup.find("div", class_="tr-study-details__section", id="eligibility")
-        if elig_heading:
-            print("✅ Found eligibility section")
-            elig_text_block = elig_heading.find("div", class_="tr-study-details__content")
-            if elig_text_block:
-                eligibility = clean_text(elig_text_block.get_text(separator=" "))
-        else:
-            print("❌ Eligibility section not found")
+        eligibility_heading = soup.find(string=lambda s: s and "Eligibility Criteria" in s)
+        if eligibility_heading:
+            parent = eligibility_heading.find_parent()
+            content_div = parent.find_next_sibling()
+            if content_div:
+                eligibility = clean_text(content_div.get_text(separator=" "))
 
-        # Contact Info
+        # Contact info via text label proximity
         contact_name, contact_email = "", ""
-        contact_labels = soup.find_all("dt")
-        for label in contact_labels:
-            label_text = label.get_text().strip().lower()
-            if "contact name" in label_text:
-                val = label.find_next_sibling("dd")
-                if val:
-                    contact_name = clean_text(val.get_text())
-            elif "contact email" in label_text:
-                val = label.find_next_sibling("dd")
-                if val:
-                    contact_email = clean_text(val.get_text())
-        if contact_name or contact_email:
-            print(f"✅ Contact: {contact_name} | {contact_email}")
-        else:
-            print("❌ Contact info not found")
+        all_text = soup.get_text(separator="\n")
+        lines = [line.strip() for line in all_text.split("\n") if line.strip()]
+        for i, line in enumerate(lines):
+            if "contact name" in line.lower() and i + 1 < len(lines):
+                contact_name = lines[i + 1]
+            elif "contact email" in line.lower() and i + 1 < len(lines):
+                contact_email = lines[i + 1]
 
-        # Locations
+        # Locations via visible country/city block
         locations = []
-        location_blocks = soup.find_all("div", class_="location-item")
-        for loc in location_blocks:
-            loc_text = clean_text(loc.get_text(separator=", "))
-            if loc_text:
-                locations.append(loc_text)
-        print(f"📍 Locations found: {len(locations)}")
+        location_candidates = soup.find_all("div", string=lambda s: s and ("Taiwan" in s or "United States" in s))
+        for loc in location_candidates:
+            locations.append(clean_text(loc.get_text()))
 
         return contact_name, contact_email, eligibility, locations
     except Exception as e:
-        print(f"🔥 Error during scraping: {e}")
-        return "", "", "", []
-
-        # Eligibility Section
-        eligibility = ""
-        elig_heading = soup.find("div", class_="tr-study-details__section", id="eligibility")
-        if elig_heading:
-            elig_text_block = elig_heading.find("div", class_="tr-study-details__content")
-            if elig_text_block:
-                eligibility = clean_text(elig_text_block.get_text(separator=" "))
-
-        # Contact Info
-        contact_name, contact_email = "", ""
-        contact_labels = soup.find_all("dt")
-        for label in contact_labels:
-            label_text = label.get_text().strip().lower()
-            if "contact name" in label_text:
-                val = label.find_next_sibling("dd")
-                if val:
-                    contact_name = clean_text(val.get_text())
-            elif "contact email" in label_text:
-                val = label.find_next_sibling("dd")
-                if val:
-                    contact_email = clean_text(val.get_text())
-
-        # Locations
-        locations = []
-        location_blocks = soup.find_all("div", class_="location-item")
-        for loc in location_blocks:
-            loc_text = clean_text(loc.get_text(separator=", "))
-            if loc_text:
-                locations.append(loc_text)
-
-        return contact_name, contact_email, eligibility, locations
-    except Exception:
+        print(f"Scraper error: {e}")
         return "", "", "", []
