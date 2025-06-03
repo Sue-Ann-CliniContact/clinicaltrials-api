@@ -35,7 +35,10 @@ def get_raw_trials(term):
 
 def fetch_page_text(url):
     try:
-        response = requests.get(url, timeout=10)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, "html.parser")
         text = soup.get_text(separator="\n")
         return clean_text(text)
