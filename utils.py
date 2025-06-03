@@ -1,3 +1,3 @@
 
 def clean_text(text):
-    return text.replace("\n", "").strip()
+    return text.replace("\n", " ").replace("\r", "").strip()
