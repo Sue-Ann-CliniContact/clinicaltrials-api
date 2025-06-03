@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from trial_scraper import get_matching_trials
+from trial_scraper import get_raw_trials
 
 app = Flask(__name__)
 
@@ -8,7 +8,7 @@ def search():
     term = request.args.get("term")
     if not term:
         return jsonify({"error": "Missing 'term' parameter"}), 400
-    results = get_matching_trials(term)
+    results = get_raw_trials(term)
     return jsonify(results)
 
 if __name__ == "__main__":
