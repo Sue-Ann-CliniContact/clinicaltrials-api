@@ -1,8 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 from utils import clean_text
-import re
-import json
 
 def get_matching_trials(term):
     rss_url = f"https://clinicaltrials.gov/ct2/results/rss.xml?cond={term}"
@@ -16,9 +14,13 @@ def get_matching_trials(term):
         for item in items:
             title = clean_text(item.title.text) if item.title else "N/A"
             link = item.link.text if item.link else "N/A"
-            nct_id = link.split("/")[-1].split("?")[0] if "clinicaltrials.gov" in link else "N/A"
+            if "/study/" in link:
+                nct_id = link.split("/")[-1].split("?")[0]
+                link = f"https://clinicaltrials.gov/ct2/show/{nct_id}"
+            else:
+                nct_id = link.split("/")[-1].split("?")[0]
 
-            contact_name, contact_email, eligibility, locations = get_structured_info(link)
+            contact_name, contact_email, eligibility, locations = scrape_ct2_page(link)
 
             results.append({
                 "title": title,
@@ -34,32 +36,39 @@ def get_matching_trials(term):
     except Exception as e:
         return [{"error": f"Failed to fetch trials: {str(e)}"}]
 
-def get_structured_info(url):
+def scrape_ct2_page(url):
     try:
         html = requests.get(url, timeout=10).text
-        json_data = re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL)
-        if not json_data:
-            return "", "", "", []
+        soup = BeautifulSoup(html, "html.parser")
 
-        data = json.loads(json_data.group(1))
+        # Contact info
+        contact_name = ""
+        contact_email = ""
+        contact_section = soup.find("div", id="tab-body")
+        if contact_section:
+            text = contact_section.get_text()
+            if "Contact:" in text:
+                contact_block = text.split("Contact:")[1].split("\n")[0:2]
+                contact_name = contact_block[0].strip()
+                if "@" in contact_block[1]:
+                    contact_email = contact_block[1].strip()
 
-        contact_name = data.get("contact", {}).get("name", "")
-        contact_email = data.get("contact", {}).get("email", "")
+        # Eligibility
+        eligibility = ""
+        eligibility_section = soup.find("div", id="eligibility")
+        if eligibility_section:
+            eligibility = clean_text(eligibility_section.get_text(separator=" "))
 
-        eligibility = data.get("eligibilityCriteria", "")
-
+        # Locations
         locations = []
-        if isinstance(data.get("location"), list):
-            for loc in data["location"]:
-                address = loc.get("address", {})
-                loc_str = ", ".join(filter(None, [
-                    address.get("addressLocality", ""),
-                    address.get("addressRegion", ""),
-                    address.get("addressCountry", "")
-                ]))
-                if loc_str:
-                    locations.append(loc_str)
+        loc_section = soup.find("div", id="contacts")
+        if loc_section:
+            rows = loc_section.find_all("div", class_="loc-contact")
+            for row in rows:
+                location = clean_text(row.get_text(separator=", "))
+                if location:
+                    locations.append(location)
 
-        return clean_text(contact_name), contact_email, clean_text(eligibility), locations
+        return contact_name, contact_email, eligibility, locations
     except Exception:
         return "", "", "", []
