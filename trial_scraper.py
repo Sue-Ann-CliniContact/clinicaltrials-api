@@ -1,3 +1,4 @@
+print("🔍 CliniContact scraper is LIVE and using updated logic")
 import requests
 from bs4 import BeautifulSoup
 from utils import clean_text
