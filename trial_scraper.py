@@ -34,19 +34,27 @@ def get_raw_trials(term):
     except Exception as e:
         return [{"error": f"Failed to fetch trials: {str(e)}"}]
 
+import os
+import requests
+from bs4 import BeautifulSoup
+from utils import clean_text
+
 def fetch_page_text(url):
     try:
         api_key = os.getenv("SCRAPER_API_KEY")
         if not api_key:
             return "[Error: SCRAPER_API_KEY not found in environment variables]"
 
-        proxy_url = f"https://api.scraperapi.com/?api_key={api_key}&url={url}"
-        print(f"🔍 Fetching through ScraperAPI: {url}")
+        proxy_url = f"https://api.scraperapi.com/?api_key={api_key}&url={url}&render=true"
+        print(f"🔍 ScraperAPI request: {url}")
 
         response = requests.get(proxy_url, timeout=30)
+        response.raise_for_status()
+
         soup = BeautifulSoup(response.text, "html.parser")
         text = soup.get_text(separator="\n")
         return clean_text(text)
     except Exception as e:
         return f"[Error retrieving page: {str(e)}]"
+
 
