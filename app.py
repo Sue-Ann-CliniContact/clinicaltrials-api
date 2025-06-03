@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from trial_scraper import get_matching_trials
 
