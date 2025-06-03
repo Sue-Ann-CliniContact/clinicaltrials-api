@@ -1,4 +1,3 @@
-
 import requests
 from bs4 import BeautifulSoup
 from utils import clean_text
@@ -42,36 +41,35 @@ def scrape_ct2_page(url):
         html = requests.get(url, timeout=10).text
         soup = BeautifulSoup(html, "html.parser")
 
-        # Eligibility
+        # Eligibility Section
         eligibility = ""
-        elig_section = soup.find("div", {"data-label": "Eligibility Criteria"})
-        if elig_section:
-            eligibility = clean_text(elig_section.get_text(separator=" "))
+        elig_heading = soup.find("div", class_="tr-study-details__section", id="eligibility")
+        if elig_heading:
+            elig_text_block = elig_heading.find("div", class_="tr-study-details__content")
+            if elig_text_block:
+                eligibility = clean_text(elig_text_block.get_text(separator=" "))
 
-        # Contact
+        # Contact Info
         contact_name, contact_email = "", ""
-        contact_table = soup.find("table", class_="ct-contact-table")
-        if contact_table:
-            rows = contact_table.find_all("tr")
-            for row in rows:
-                cells = row.find_all("td")
-                if len(cells) >= 2:
-                    label = cells[0].get_text().lower()
-                    value = cells[1].get_text().strip()
-                    if "name" in label and not contact_name:
-                        contact_name = clean_text(value)
-                    if "email" in label and "@" in value:
-                        contact_email = clean_text(value)
+        contact_labels = soup.find_all("dt")
+        for label in contact_labels:
+            label_text = label.get_text().strip().lower()
+            if "contact name" in label_text:
+                val = label.find_next_sibling("dd")
+                if val:
+                    contact_name = clean_text(val.get_text())
+            elif "contact email" in label_text:
+                val = label.find_next_sibling("dd")
+                if val:
+                    contact_email = clean_text(val.get_text())
 
         # Locations
         locations = []
-        site_section = soup.find("div", {"data-label": "Locations"})
-        if site_section:
-            rows = site_section.find_all("div", class_="location-item")
-            for row in rows:
-                location_text = clean_text(row.get_text(separator=", "))
-                if location_text:
-                    locations.append(location_text)
+        location_blocks = soup.find_all("div", class_="location-item")
+        for loc in location_blocks:
+            loc_text = clean_text(loc.get_text(separator=", "))
+            if loc_text:
+                locations.append(loc_text)
 
         return contact_name, contact_email, eligibility, locations
     except Exception:
