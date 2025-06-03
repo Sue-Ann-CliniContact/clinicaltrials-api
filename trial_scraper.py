@@ -39,8 +39,52 @@ def get_matching_trials(term):
 
 def scrape_ct2_page(url):
     try:
+        print(f"🧪 Scraping: {url}")
         html = requests.get(url, timeout=10).text
         soup = BeautifulSoup(html, "html.parser")
+
+        # Eligibility
+        eligibility = ""
+        elig_heading = soup.find("div", class_="tr-study-details__section", id="eligibility")
+        if elig_heading:
+            print("✅ Found eligibility section")
+            elig_text_block = elig_heading.find("div", class_="tr-study-details__content")
+            if elig_text_block:
+                eligibility = clean_text(elig_text_block.get_text(separator=" "))
+        else:
+            print("❌ Eligibility section not found")
+
+        # Contact Info
+        contact_name, contact_email = "", ""
+        contact_labels = soup.find_all("dt")
+        for label in contact_labels:
+            label_text = label.get_text().strip().lower()
+            if "contact name" in label_text:
+                val = label.find_next_sibling("dd")
+                if val:
+                    contact_name = clean_text(val.get_text())
+            elif "contact email" in label_text:
+                val = label.find_next_sibling("dd")
+                if val:
+                    contact_email = clean_text(val.get_text())
+        if contact_name or contact_email:
+            print(f"✅ Contact: {contact_name} | {contact_email}")
+        else:
+            print("❌ Contact info not found")
+
+        # Locations
+        locations = []
+        location_blocks = soup.find_all("div", class_="location-item")
+        for loc in location_blocks:
+            loc_text = clean_text(loc.get_text(separator=", "))
+            if loc_text:
+                locations.append(loc_text)
+        print(f"📍 Locations found: {len(locations)}")
+
+        return contact_name, contact_email, eligibility, locations
+    except Exception as e:
+        print(f"🔥 Error during scraping: {e}")
+        return "", "", "", []
 
         # Eligibility Section
         eligibility = ""
