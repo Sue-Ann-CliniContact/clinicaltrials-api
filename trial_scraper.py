@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from utils import clean_text
+import os
 
 def get_raw_trials(term):
     rss_url = f"https://clinicaltrials.gov/ct2/results/rss.xml?cond={term}"
@@ -35,12 +36,17 @@ def get_raw_trials(term):
 
 def fetch_page_text(url):
     try:
-        api_key = "77684815926660dc3de01ddfe765dee5"
-        proxy_url = f"https://api.scraperapi.com/?api_key={api_key}&url={url}"
+        api_key = os.getenv("SCRAPER_API_KEY")
+        if not api_key:
+            return "[Error: SCRAPER_API_KEY not found in environment variables]"
 
-        response = requests.get(proxy_url, timeout=15)
+        proxy_url = f"https://api.scraperapi.com/?api_key={api_key}&url={url}"
+        print(f"🔍 Fetching through ScraperAPI: {url}")
+
+        response = requests.get(proxy_url, timeout=30)
         soup = BeautifulSoup(response.text, "html.parser")
         text = soup.get_text(separator="\n")
         return clean_text(text)
     except Exception as e:
         return f"[Error retrieving page: {str(e)}]"
+
